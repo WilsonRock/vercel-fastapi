@@ -14,6 +14,10 @@ Entre en el entorno virutal
 *   myenv\Scripts\activate
 Ahora que el entorno virtual está activado, puedes instalar FastAPI y Uvicorn. Ejecuta el siguiente comando:
 css
+
+instala dependencias
+pip install -r requirements.txt
+
  
 instrsala uviconrn
 * pip install fastapi uvicorn[standard]
@@ -21,5 +25,6 @@ Crea un archivo Python (por ejemplo, main.py) con el código de tu aplicación F
 
 Ejecuta tu aplicación FastAPI utilizando Uvicorn. Desde la misma ubicación donde está tu archivo main.py, ejecuta el siguiente comando:
    inicia servidor
-*  uvicorn main:app --reload
+*  uvicorn main:app --reload  tanien pueder ser python -m uvicorn main:app --reload
+
 Esto iniciará el servidor y tu aplicación FastAPI estará disponible en la dirección http://localhost:8000.

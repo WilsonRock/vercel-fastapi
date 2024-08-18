@@ -1,44 +1,60 @@
-from fastapi import FastAPI, HTTPException
-from typing import List
-from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from models import NotificationReceived, NotificationOpened, SessionLocal
+from models import Base, engine
 
-# Modelo de datos con Pydantic
-class Position(BaseModel):
-    link: str
-
-# Crear una instancia de la aplicación FastAPI
 app = FastAPI()
-# Origen permitido: '*' permite cualquier origen.
-# Si solo quieres permitir un origen específico, reemplaza '*' con el origen específico.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Puedes reemplazar "*" con el origen específico de tu aplicación Angular
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
-)
+Base.metadata.create_all(bind=engine)
 
-# Datos de ejemplo
-positions_data = [
-    {
-        "link": "t9pjzZmHq-4",
-    }
-    # Puedes agregar más datos de ejemplo aquí si es necesario
-]
+# Dependencia para obtener la base de datos
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# Operaciones CRUD
+@app.post("/notifications/received/")
+async def save_notification_received(
+    notification_id: str, 
+    title: str, 
+    message: str, 
+    user_id: str, 
+    db: Session = Depends(get_db)
+):
+    db_notification = NotificationReceived(
+        notification_id=notification_id,
+        title=title,
+        message=message,
+        user_id=user_id
+    )
+    try:
+        db.add(db_notification)
+        db.commit()
+        db.refresh(db_notification)
+    except Exception as e:
+        db.rollback()  # Revertir la transacción en caso de error
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "Notification received saved successfully"}
 
-@app.get("/link/", response_model=List[Position])
-async def get_positions():
-    return positions_data
-
-@app.put("/link/{position_id}")
-async def update_position(position_id: int, position: Position):
-    if position_id < 0 or position_id >= len(positions_data):
-        raise HTTPException(status_code=404, detail="Posición no encontrada")
-    positions_data[position_id] = position.dict()
-    return {"message": f"Posición en el índice {position_id} actualizada correctamente"}
+@app.post("/notifications/opened/")
+async def save_notification_opened(
+    notification_id: str, 
+    user_id: str, 
+    db: Session = Depends(get_db)
+):
+    db_notification = NotificationOpened(
+        notification_id=notification_id,
+        user_id=user_id
+    )
+    try:
+        db.add(db_notification)
+        db.commit()
+        db.refresh(db_notification)
+    except Exception as e:
+        db.rollback()  # Revertir la transacción en caso de error
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "Notification opened saved successfully"}
 
 # Iniciar el servidor FastAPI
 if __name__ == "__main__":
